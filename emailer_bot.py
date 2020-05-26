@@ -4,8 +4,8 @@ from telegram.ext import CommandHandler
 from os import listdir
 from os.path import isfile, join
 # my bot TOKEN
-# create TOKEN.py and insert TOKEN:str variable for work this bot
-from TOKEN import TOKEN
+# create KEYS.py and insert TOKEN:str variable for work this bot
+from KEYS import TOKEN
 
 logging.basicConfig(
     level=logging.DEBUG,
