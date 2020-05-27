@@ -1,7 +1,7 @@
 # create KEYS.py and put LOGIN:str and PASSWORD:str variables
 from KEYS import LOGIN, PASSWORD
 
-from typing import List, Union
+from typing import List, Union, Callable
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -18,16 +18,16 @@ def get_node_text(web_element) -> str:
 
 
 class MailRuBot:
-    def __init__(self, username: str, password: str) -> None:
+    def __init__(self, username: str, password: str, CHROME_DRIVER_PATH:str = "chromedriver.exe") -> None:
         super().__init__()
-        self._inbox_url = "https://e.mail.ru/messages/inbox"
-        self.driver = webdriver.Chrome()
+        self._inbox_url = "https://e.mail.ru/inbox/"
+        self.driver = webdriver.Chrome(CHROME_DRIVER_PATH)
         self.driver.get("https://mail.ru")
         self.username: str = username
         self.password: str = password
         self.isAuthorized: bool = False
 
-    def _with_authorize(func):
+    def _with_authorize(func: Callable[[],None]):
         def check_auth_and_call(self, *args, **kwargs):
             if (self.isAuthorized):
                 return func(self, *args, **kwargs)
@@ -66,14 +66,21 @@ class MailRuBot:
             if (not EC.url_contains(self._inbox_url)):
                 self.driver.get(self._inbox_url)
 
+            # OLD SITE VERSION
+
+            # unread_emails = WebDriverWait(self.driver, 10).until(
+            #     lambda driver: driver.find_elements_by_class_name("b-datalist__item_unread"))
+
+            # themes = [email.find_elements_by_class_name(
+            #     "b-datalist__item__subj") for email in unread_emails]
+            
+            #return [get_node_text(theme[0]) for theme in themes[:count]]
+
             unread_emails = WebDriverWait(self.driver, 10).until(
-                lambda driver: driver.find_elements_by_class_name(
-                    "b-datalist__item_unread"))
+                lambda driver: driver.find_elements_by_xpath("//span[@class='llc__subject llc__subject_unread']") 
+            )
 
-            themes = [email.find_elements_by_class_name(
-                "b-datalist__item__subj") for email in unread_emails]
-
-            return [get_node_text(theme[0]) for theme in themes[:count]]
+            return [theme.text for theme in unread_emails[:count]]
         except:
             self.quit()
 
@@ -84,17 +91,16 @@ class MailRuBot:
                 self.driver.get(self._inbox_url)
 
             write_message_button = WebDriverWait(self.driver, 10).until(
-                lambda driver: driver.find_element_by_css_selector("a.b-toolbar__btn"))
+                lambda driver: driver.find_element_by_css_selector("a.compose-button_white"))
             write_message_button.click()
 
-            form = WebDriverWait(self.driver,10).until(
-                lambda driver: driver.find_element_by_name("Compose"))
+            email_area = self.driver.find_element_by_xpath("//div[starts-with(@class,'contactsContainer')]")
+            email_input = email_area.find_element_by_tag_name("input")
+            email_input.send_keys(email)
 
-            email_area = form.find_element_by_css_selector("textarea.compose__labels__input")
-            email_area.send_keys(email)
-
-            theme = form.find_element_by_name("Subject")
-            theme.send_keys(title)
+            theme_area = self.driver.find_element_by_xpath("//div[starts-with(@class,'subject__container')]")
+            theme_input = theme_area.find_element_by_tag_name("input")
+            theme_input.send_keys(title)
         except:
             self.quit()
 
